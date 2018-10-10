@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <span th:include="km/commons/templates :: common-css-js"></span>
+    <span th:include="km/commons/templates :: init-menu"></span>
+    <style>
+        .k-panel {
+            float: left;
+            height: 100%;
+        }
+        .k-menu {
+            width: 20%;
+            height: inherit;
+            border-right: #c0c0c0 1px solid;
+        }
+
+        .k-context {
+            width: 80%;
+            height: 100%;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="km/commons/templates :: header"></div>
+<div class="container">
+    <br><br>
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <div class="row">
+                <ol class="breadcrumb" style="background-color: #ffffff" id="info-menu">
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">Library</a></li>
+                    <li class="active">Data</li>
+                </ol>
+            </div>
+            <div id="entity-title" class="h3">测试标题</div>
+            <br>
+            <div class="pull-right">
+                <a class="btn btn-default" id="edit-btn">编辑</a>
+            </div>
+            <div>
+                <span id="entity-tags"></span>
+            </div>
+            <div id="entity-createTime"></div>
+            <div id="entity-attachments" style="display: none">
+                <br>
+                <label>附件:</label>
+                <div id="attachments-panel">
+                </div>
+            </div>
+            <hr>
+            <div>
+                <div class="k-panel k-menu">
+                    <div class="sidebar-module">
+                        <h4 id="k-col-title">关联目录</h4>
+                        <ol id="k-col-list">
+                        </ol>
+                    </div>
+                </div>
+                <div class="k-panel k-context" id="entity-context"></div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+<script th:inline="text">
+
+    function setTags(tags) {
+        console.log(tags);
+        var tagStr = '';
+        var array = $.trim(tags).split(';');
+        for (var i = 0; i < array.length; i++) {
+            var item = array[i];
+            if (item.length > 0) {
+                tagStr += "<a>#" + array[i] + "</a>&nbsp;&nbsp;&nbsp;";
+            }
+        }
+        return tagStr;
+    }
+
+    function setAttachments(attachments) {
+        var str = ''
+        for (var i = 0; i < attachments.length; i++) {
+            var item = attachments[i];
+            if(item['status'] == 0){
+                continue;
+            }
+            str += '&nbsp;&nbsp;&nbsp;&nbsp;<a class="btn btn-default" style="margin-right: 10px;" target="_blank" href="[[@{/view/}]]' + item['id'] + '/preview" >' +
+                '<i class="glyphicon glyphicon-file"></i>' + item['name'];
+            '</a>';
+        }
+        $("#attachments-panel").append(str);
+        if(str.length > 0 ){
+            $("#entity-attachments").show();
+        }
+    }
+
+    var id = "[[${id}]]" - 0;
+
+    $("#edit-btn").attr("href", "[[@{/view/knowledge/}]]" + id + "/edit");
+    $.get("[[@{/knowledge/}]]" + id + "/info", function (data) {
+        console.log(data);
+        var obj = data['knowledge'];
+        var name = obj['name'];
+        var tags = obj['tags'];
+        var createTime = obj['createTime'];
+        var context = obj['context'];
+        var attachments = obj['attachments'];
+
+        $("title").text(name);
+        $("#entity-title").text(name);
+        $("#entity-tags").html(setTags(tags));
+        $("#entity-createTime").text(createTime);
+        $("#entity-context").html(context);
+
+        if ( attachments.length > 0) {
+            setAttachments(attachments);
+        }
+
+        var parentMenuList = data['parentMenuList'];
+        // 设置文档所属目录
+        setParentMenuList(parentMenuList);
+
+        var knowledgeCollection = data['knowledgeCollection'];
+        setKnowledgeCollection(knowledgeCollection);
+        // 配置样式
+        initStyle();
+    })
+
+
+    function setKnowledgeCollection(data) {
+
+        if(data == undefined){
+            $(".k-menu").hide();
+            $(".k-context").css("width","99%");
+        }
+        var knowledgeList = data['knowledgeList'];
+
+        $("#k-col-title").text(data['name']);
+        for (var i = 0; i < knowledgeList.length; i++) {
+            var node = knowledgeList[i];
+            console.log('node:' + node['id'])
+            if (id == node['id']) {
+                $("#k-col-list").append('<li><a target="_blank" href="[[@{/view/knowledge/}]]' + node['id'] + '"  class="text-danger">' + node['name'] + '</a></li>');
+            } else {
+                $("#k-col-list").append('<li><a target="_blank" href="[[@{/view/knowledge/}]]' + node['id'] + '">' + node['name'] + '</a></li>');
+            }
+        }
+    }
+
+    /**
+     *  设置文档所属目录
+     * @param list
+     */
+    function setParentMenuList(list) {
+        var str = "";
+        for (var i = 0; i < list.length; i++) {
+            var node = list[i];
+            if (i == 0) {
+                str = '<li class="active">' + node['name'] + '</li>';
+                continue;
+            }
+            str = '<li><a href="' + node['id'] + '">' + node['name'] + '</a></li>' + str;
+        }
+        $("#info-menu").empty();
+        $("#info-menu").append(str);
+    }
+
+    function initStyle() {
+        // 配置 表格样式
+        $("#entity-context").find("table").addClass("table table-bordered table-hover");
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>预览</title>
+    <span th:include="km/commons/templates :: common-css-js"></span>
+    <span th:include="km/commons/templates :: init-menu"></span>
+</head>
+<body>
+<div th:replace="km/commons/templates :: header"></div>
+<div class="container">
+    <div class="page-header">
+        <div class="h4">预览文件:&nbsp;
+            <small id="attachment-name"></small>
+            <a class="btn btn-default pull-right" target="_blank" id="download-url">
+                <i class="glyphicon glyphicon-download-alt"></i>
+            </a>
+            <a class="btn btn-default pull-right" target="_blank" id="view-url">
+                <i class="glyphicon glyphicon-zoom-in"></i>
+            </a>
+        </div>
+        <br>
+        <div class="h5">文件路径:&nbsp;&nbsp;&nbsp;<span id="attachment-local-path"></span></div>
+    </div>
+    <div id="attachment-content">
+        文件加载ing......
+    </div>
+</div>
+<script th:inline="text">
+    var id = '[[${attachment}]]';
+    $.get("[[@{/Attachment/}]]" + id + "/info", function (data) {
+        console.log(data);
+        var url = '[[@{/Attachment/view/}]]' + data['id'];
+        var type = data['type'];
+        var filename = data['otherName'] == null ? data['name'] : data['otherName'] + '.' + type;
+
+        $("#attachment-name").text(filename);
+        $("#view-url").attr("href", url);
+        $("#download-url").attr("href", url + "?type=download");
+
+        $("#attachment-local-path").html(data['url']);
+        var str = "";
+        if (type.toLowerCase() == 'jpg' || type.toLowerCase() == 'png' || type.toLowerCase() == 'gif') {
+            str = "<img src='" + url + "' class = 'img-responsive center-block'>"
+        } else {
+            str = '<div class="embed-responsive embed-responsive-4by3">' +
+                '<iframe class="embed-responsive-item" src="' + url + '">加载ing.....</iframe>' +
+                ' </div>';
+        }
+
+        $("#attachment-content").empty().append(str);
+
+    })
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+spring:
+  profiles:
+    active: formal
+  thymeleaf:
+    cache: false
+    mode: LEGACYHTML5
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+server:
+  context-path: "/KnowledgeManual"
+logging:
+  config: "classpath:log4j.properties"
+
+

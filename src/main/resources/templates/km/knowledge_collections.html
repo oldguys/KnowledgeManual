@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>文档集</title>
+    <span th:include="km/commons/templates :: common-css-js"></span>
+    <span th:include="km/commons/templates :: init-menu"></span>
+    <span th:include="km/commons/templates :: bootstrap-table"></span>
+</head>
+<body>
+<div th:replace="km/commons/templates :: header"></div>
+<div class="container">
+    <!-- 搜索框 -->
+    <div class="row" style="margin-top: 20px;margin-bottom: 20px;">
+        <div class="col-md-1">
+            <a class="btn btn-default" id="btn-add"><i class="glyphicon glyphicon-plus"></i>&nbsp;新增</a>
+        </div>
+        <div class="col-md-5"></div>
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" class="form-control" id="queryText">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" type="button" id="queryBtn" disabled>
+                        <i class="glyphicon glyphicon-search"></i> 搜索
+                    </button>
+                </span>
+            </div>
+        </div>
+    </div>
+    <hr>
+    <!-- 结果集表 -->
+    <div id="records-info"></div>
+
+    <!-- 新增框 -->
+    <div class="modal fade" id="edit-panel" tabindex="-1" role="dialog" data-backdrop="static">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="modal-title"></h4>
+                </div>
+                <div class="modal-body">
+                    <form id="entity-form">
+                        <div class="form-group">
+                            <label class="control-label">ID:</label>
+                            <input type="text" class="form-control" name="id" id="entity-id" readonly>
+                            <span class="help-block"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">名称:</label>
+                            <input type="text" class="form-control" name="name" id="entity-name" autocomplete="off">
+                            <span class="help-block"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">类别:</label>
+                            <select class="form-control" name="type" id="entity-type">
+                            </select>
+                            <span class="help-block"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">描述:</label>
+                            <textarea type="text" class="form-control" name="description"
+                                      id="entity-description"></textarea>
+                            <span class="help-block"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">关联文档:</label>
+                            <input type="text" class="form-control" name="knowledgeList" id="entity-knowledge" readonly>
+                            <span class="help-block"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">创建时间:</label>
+                            <input type="text" class="form-control" id="entity-createTime" readonly>
+                            <span class="help-block"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">状态:</label>
+                            <select class="form-control" name="status" id="entity-status">
+                                <option value="1">可用</option>
+                                <option value="0">禁用</option>
+                            </select>
+                            <span class="help-block"></span>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-info" id="btn-addition">保存</button>
+                    <button type="button" class="btn btn-warning" id="btn-modify">更新</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+</div>
+
+<!-- 弹出Tag选择框 -->
+<div class="modal fade" id="knowledge-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">选择文档</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="panel panel-default">
+                            <div class="panel-heading" style="background-color: #ffffff">
+                                <h3 class="panel-title">文档列表</h3>
+                            </div>
+                            <div style="padding: 10px;">
+                                <table class="panel-body" id="knowledge-table"></table>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <!-- style="background-color: #F5F5F5" -->
+                        <div class="panel panel-default">
+                            <div class="panel-heading" style="background-color: #ffffff">
+                                <h3 class="panel-title">已选文档</h3>
+                            </div>
+                            <div class="panel-body">
+                                <ol id="tags-selected-panel">
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">确定</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+
+</body>
+<script th:inline="text">
+
+    /**
+     *  将节点转换为拼接点
+     * @param node
+     * @returns {string}
+     */
+    function getNodeItemStr(node) {
+
+        var colorFlag = "bs-callout-default";
+        var type = node['type'];
+        var typeName = typeMap[type];
+        if (type == 1) {
+            colorFlag = "bs-callout-danger";
+            typeName = "<b class='text-danger'>#" + typeName + "</b>&nbsp;";
+        } else if (type == 2) {
+            colorFlag = "bs-callout-info";
+            typeName = "<b class='text-info'>#" + typeName + "</b>&nbsp;";
+        } else if (type == 3) {
+            colorFlag = "bs-callout-success";
+            typeName = "<b class='text-success'>#" + typeName + "</b>&nbsp;";
+        }
+
+        var str = '<div class="bs-callout ' + colorFlag + '">' +
+            '<div class="h4"><span><b>' + node['name'] + '</b></span><a class="btn btn-default pull-right btn-update" data-id="' + node['id'] + '"><i class="glyphicon glyphicon-pencil"></i></a></div>' +
+            '<br><p>' + typeName + node['createTime'] + '</p>' +
+            '<p>' + node['description'] + '</p>' +
+            ' <hr>' +
+            '<div>' +
+            '  <label>章节:</label><br>' +
+            ' <ul>';
+
+        var knowledgeList = node['knowledgeList'];
+        for (var i = 0; i < knowledgeList.length; i++) {
+            var item = knowledgeList[i];
+            str += ' <li><i class="glyphicon glyphicon-link"></i>&nbsp;' + (i + 1) + '.' + '&nbsp;<a target="_blank" href="[[@{/view/knowledge/}]]' + item['id'] + '">' + item['name'] + ' </a></li>';
+        }
+        str += ' </ul>' +
+            ' </div>' +
+            ' </div>';
+
+        return str;
+    }
+
+    /**
+     * 集合URL
+     **/
+    var KnowledgeCollectionURL = "[[@{/KnowledgeCollection/list}]]";
+
+    /**
+     * 设置界面
+     **/
+    function setView(data) {
+        var str = "";
+        for (var i = 0; i < data.length; i++) {
+            var node = data[i];
+            str += getNodeItemStr(node);
+        }
+        $("#records-info").empty().append(str);
+    }
+
+    var typeMap = {};
+    /**
+     * 初始化类别
+     **/
+    $.get("[[@{/KnowledgeCollection/type}]]", function (data) {
+        typeMap = data;
+        for (var key in data) {
+            $("#entity-type").append("<option value='" + key + "'>" + data[key] + "</option>")
+        }
+    })
+
+    /**
+     *   初始化主界面
+     */
+    $.get(KnowledgeCollectionURL, function (data) {
+        setView(data);
+    })
+
+    /**
+     * 配置文档选择
+     **/
+    $('#knowledge-table').bootstrapTable({
+        url: "[[@{/knowledge/list?status=1}]]",//请求数据url
+        showRefresh: true,
+        smartDisplay: true,
+        showToggle: true,
+        // showExport:true,
+        paginationPreText: '上一页',
+        paginationNextText: '下一页',
+        pagination: true,//分页
+//        sidePagination: 'server',//服务器端分页
+        paginationVAlign: 'bottom',
+        pageNumber: 1,
+        pageSize: 5,
+        pageList: [10, 20, 30, 50, 'all'],//分页步进值
+        search: true, //显示搜索框
+//        striped: true,
+        columns: [
+            {
+                field: 'id',
+                title: '编号',
+            },
+            {
+                field: 'name',
+                title: '标题',
+            },
+            {
+                title: '详情',
+                formatter: function (value, row, index) { // 单元格格式化函数
+                    var id = row['id'];
+                    var name = row['name'];
+                    return "<a class='btn btn-default btn-selected' data-id='" + id + "' data-name='" + name + "'><i class='glyphicon glyphicon-plus'></i></a>"
+                }
+            },
+        ]
+    })
+
+    /**
+     * 选中knowledge的Map映射
+     **/
+    var knowledgeMap = {};
+    // 注入值列表
+    var knowledgeArray = "";
+    /**
+     * 设置知识点
+     **/
+    $("#entity-knowledge").click(function () {
+        $("#knowledge-modal").modal("show");
+    })
+
+    /**
+     * 知识点表
+     **/
+    $("#knowledge-table").on("click", ".btn-selected", function () {
+        var id = $(this).attr("data-id");
+        var name = $(this).attr("data-name");
+        knowledgeMap[id] = name;
+        setSelectedList();
+    })
+
+    /**
+     * 知识点表
+     **/
+    $("#tags-selected-panel").on("click", ".btn-remove-selected", function () {
+
+        var id = $(this).attr("data-id");
+        knowledgeMap[id] = undefined;
+        setSelectedList();
+    })
+
+    function setSelectedList() {
+
+        var str = "";
+        knowledgeArray = "";
+        for (var key in knowledgeMap) {
+            var value = knowledgeMap[key];
+            if (value != undefined) {
+                str += "<li><div>" + key + " : " + value + "<a data-id='" + key + "' class='text-danger pull-right btn-remove-selected'><i class='glyphicon glyphicon-remove '></i></a></div></li>"
+                knowledgeArray += key + ";";
+            }
+
+        }
+        // 设置input ，界面 <ol>
+        $("#entity-knowledge").val(knowledgeArray);
+        $("#tags-selected-panel").empty().append(str);
+    }
+
+
+    /**
+     *  新增 =======================================
+     */
+    $("#btn-add").click(function () {
+
+        $($("#entity-id").parent(".form-group")[0]).hide();
+        $($("#entity-createTime").parent(".form-group")[0]).hide();
+        $($("#entity-status").parent(".form-group")[0]).hide();
+        $("#btn-modify").hide();
+        $("#btn-addition").show();
+
+        $("#entity-name").val("");
+        $("#entity-description").val("");
+        $("#entity-type").val(0);
+        $("#entity-knowledge").val("");
+
+        // 重置文档集选中集合
+        knowledgeMap = {};
+        $("#tags-selected-panel").empty();
+
+        $("#edit-panel").modal("show");
+        $("#modal-title").text("新增文档集");
+    })
+
+    /**
+     *  提交更新表单
+     */
+    $("#btn-addition").click(function () {
+        $.post("[[@{/KnowledgeCollection/addition}]]", $("#entity-form").serializeArray(), function (data) {
+            if (data['status'] == 'success') {
+                // 更新界面
+                $.get(KnowledgeCollectionURL, function (data) {
+                    setView(data);
+                    $("#edit-panel").modal("hide");
+                })
+            }
+        })
+    })
+
+    $("#records-info").on("click", ".btn-update", function () {
+        var id = $(this).attr("data-id");
+        $.get("[[@{/KnowledgeCollection/}]]" + id + "/info", function (data) {
+
+            $($("#entity-id").parent(".form-group")[0]).show();
+            $($("#entity-createTime").parent(".form-group")[0]).show();
+            $($("#entity-status").parent(".form-group")[0]).show();
+
+            $("#entity-id").val(data['id']);
+            $("#entity-name").val(data['name']);
+            $("#entity-description").val(data['description']);
+            $("#entity-createTime").val(data['createTime']);
+            $("#entity-status").val(data['status']);
+            $("#entity-type").val(data['type']);
+
+            // 重置文档集选中集合
+            knowledgeMap = {};
+            var knowledgeList = data['knowledgeList'];
+            for (var i = 0; i < knowledgeList.length; i++) {
+                var item = knowledgeList[i];
+                // 注入文档集所关联的文档
+                knowledgeMap[item['id']] = item['name'];
+            }
+            // 更新关联文档集列表
+            setSelectedList();
+
+            $("#btn-modify").show();
+            $("#btn-addition").hide();
+
+            $("#edit-panel").modal("show");
+            $("#modal-title").text("编辑文档集");
+        })
+    })
+
+    $("#btn-modify").click(function () {
+        $.post("[[@{/KnowledgeCollection/update}]]", $("#entity-form").serializeArray(), function (data) {
+            if (data['status'] == 'success') {
+                // 更新界面
+                $.get(KnowledgeCollectionURL, function (data) {
+                    setView(data);
+                    $("#edit-panel").modal("hide");
+                })
+            }
+        })
+    })
+
+    $("#queryText").on("keyup", function () {
+        var value = $.trim($(this).val());
+        if (value.length > 0) {
+            console.log("value:" + value);
+            $.get(KnowledgeCollectionURL + "?name=" + value, function (data) {
+                setView(data);
+            })
+        } else {
+            $.get(KnowledgeCollectionURL, function (data) {
+                setView(data);
+            })
+        }
+    })
+
+</script>
+</html>

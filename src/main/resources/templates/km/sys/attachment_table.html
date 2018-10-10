@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>附件列表</title>
+    <span th:include="km/commons/templates :: common-css-js"></span>
+    <span th:include="km/commons/templates :: init-menu"></span>
+    <span th:include="km/commons/templates :: bootstrap-table"></span>
+    <span th:include="km/commons/templates :: bootstrap-fileinput"></span>
+</head>
+<body>
+<div th:replace="km/commons/templates :: header"></div>
+<div class="container">
+    <div class="page-header">
+        <h3>附件列表
+                <button class="btn btn-default pull-right" id="add-btn"><i
+                        class="glyphicon glyphicon-plus"></i> 新增
+                </button>
+        </h3>
+    </div>
+    <table id="records-info"></table>
+</div>
+</body>
+<!-- 编辑框 -->
+<div class="modal fade" id="edit-panel" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">编辑</h4>
+            </div>
+            <div class="modal-body">
+                <form id="entity-form">
+                    <div class="form-group">
+                        <label class="control-label">ID:</label>
+                        <input type="text" class="form-control" name="id" id="entity-id" readonly>
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">文件名:</label>
+                        <input type="text" class="form-control" id="entity-name" autocomplete="off" readonly>
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">文件别名:</label>
+                        <input type="text" class="form-control" name="otherName" id="entity-otherName"
+                               placeholder="https://www.baidu.com/" autocomplete="off">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">文件类型:</label>
+                        <input type="text" class="form-control" id="entity-type" readonly>
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">附件地址:</label>
+                        <input type="text" class="form-control" id="entity-url" readonly>
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">创建时间:</label>
+                        <input type="text" class="form-control" id="entity-createTime"
+                               autocomplete="off" readonly>
+                        <span class="help-block"></span>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-warning" id="btn-modify">更新</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<!-- 编辑框 -->
+<div class="modal fade" id="add-panel" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">新增附件</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="file-upload">上传文件:</label>
+                    <input id="file-upload" name="files" type="file" style="z-index: 12001">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<script th:inline="text">
+
+    function setDetailView(row) {
+        var url = row['url'];
+        return "文件路径:&nbsp;&nbsp;&nbsp;" + url;
+    }
+
+    $('#records-info').bootstrapTable({
+        url: "[[@{/Attachment/all}]]",//请求数据url
+        showRefresh: true,
+        smartDisplay: true,
+        showToggle: true,
+        paginationPreText: '上一页',
+        paginationNextText: '下一页',
+        pagination: true,//分页
+//        sidePagination: 'server',//服务器端分页
+        paginationVAlign: 'bottom',
+        pageNumber: 1,
+        pageSize: 30,
+        pageList: [10, 20, 30, 50, 'all'],//分页步进值
+        search: true, //显示搜索框
+        detailView: true,
+        detailFormatter: function (index, row, element) {
+            return setDetailView(row);
+        },
+        columns: [
+            {
+                field: 'id',
+                title: '编号',
+            },
+            {
+                field: 'name',
+                title: '标题',
+                width: '25%',
+                formatter: function (value, row, index) {
+                    return "<p>" + value + "</p>";
+                }
+            },
+            {
+                field: 'otherName',
+                title: '别名',
+                formatter: function (value, row, index) {
+                    return "<p>" + value + "</p>";
+                }
+            },
+            {
+                field: 'type',
+                title: '文件类型',
+                sortable: true,
+
+            },
+            {
+                field: 'createTime',
+                title: '创建时间',
+
+            },
+            {
+                title: '编辑',
+                width: '13%',
+                formatter: function (value, row, index) { // 单元格格式化函数
+
+                    var id = row['id'];
+                    var str =
+                        ' <a class="btn btn-default" title="预览" target="_blank" href="[[@{/view/}]]' + id + '/preview" >  ' +
+                        '  <i class="glyphicon glyphicon-search"></i>  ' +
+                        ' </a>  ' +
+                        ' <a class="btn btn-default btn-edit" title="详情" data-toggle="tooltip" data-placement="left" data-id="' + id + '" >  ' +
+                        '  <i class="glyphicon glyphicon-pencil"></i>  ' +
+                        ' </a>  ';
+                    if (row['status'] == 1) {
+                        str += '<a class="btn btn-default btn-state" title="详情" data-state="0" data-toggle="tooltip" data-placement="left" data-id="' + id + '" >  ' +
+                            '  <i class="glyphicon glyphicon-ok text-success"></i>  ' +
+                            ' </a>  ';
+                    } else {
+                        str += ' <a class="btn btn-default btn-state" title="详情" data-state="1" data-toggle="tooltip" data-placement="left" data-id="' + id + '" >  ' +
+                            '  <i class="glyphicon glyphicon-remove text-danger"></i>  ' +
+                            ' </a>  ';
+                    }
+                    return str;
+                }
+            },
+        ]
+    })
+
+    /**
+     *  编辑更新状态
+     */
+    $("#records-info").on("click", ".btn-state", function () {
+        var state = $(this).attr("data-state");
+        var id = $(this).attr("data-id");
+        $.post("[[@{/Attachment/}]]" + id + "/update", {status: state}, function (data) {
+            if (data['status'] == 'success') {
+                $('#records-info').bootstrapTable("refresh");
+            }
+        })
+    })
+
+    /**
+     *  编辑按钮
+     */
+    $("#records-info").on("click", ".btn-edit", function () {
+        var id = $(this).attr("data-id");
+        $.get("[[@{/Attachment/}]]" + id + "/info", function (data) {
+
+            $("#entity-id").val(data['id']);
+            $("#entity-name").val(data['name']);
+            $("#entity-otherName").val(data['otherName']);
+            $("#entity-createTime").val(data['createTime']);
+            $("#entity-type").val(data['type']);
+            $("#entity-url").val(data['url']);
+
+            $("#edit-panel").modal("show");
+        })
+    })
+
+    $("#btn-modify").click(function () {
+        $.post("[[@{/Attachment/}]]" + $("#entity-id").val() + "/update", $("#entity-form").serializeArray(), function (data) {
+            if (data['status'] == 'success') {
+                $('#records-info').bootstrapTable("refresh");
+                $("#edit-panel").modal("hide");
+            }
+        })
+    })
+
+    $("#add-btn").click(function () {
+        $("#add-panel").modal("show");
+    })
+
+    /**
+     * 附件上传 ==================================
+     **/
+
+    $("#file-upload").fileinput({
+        uploadUrl: '[[@{/Attachment/save}]]',
+        language: 'zh', //设置语言
+//        allowedFileExtensions: ['jpg', 'gif', 'png'],//接收的文件后缀
+        uploadExtraData:{"type" : "KnowledgeFile"},
+        uploadAsync: true, //默认异步上传
+        showUpload: true, //是否显示上传按钮
+        showRemove: true, //显示移除按钮
+        showPreview: true, //是否显示预览
+        showCaption: true,//是否显示标题
+        browseClass: "btn btn-primary", //按钮样式
+        dropZoneEnabled: false,//是否显示拖拽区域
+        //minImageWidth: 50, //图片的最小宽度
+        //minImageHeight: 50,//图片的最小高度
+        //maxImageWidth: 1000,//图片的最大宽度
+        //maxImageHeight: 1000,//图片的最大高度
+        //maxFileSize:0,//单位为kb，如果为0表示不限制文件大小
+        //minFileCount: 0,
+        maxFileCount: 2, //表示允许同时上传的最大文件个数
+        enctype: 'multipart/form-data',
+        validateInitialCount: true,
+//        previewFileIcon: "<i class='glyphicon glyphicon-king'></i>",
+        msgFilesTooMany: "选择上传的文件数量({n}) 超过允许的最大数值{m}！",
+    }).on("fileuploaded", function (event, data, previewId, index) {
+        var responseData = data['response'];
+        var code = responseData['code'];
+        if (code == 200) {
+            $('#records-info').bootstrapTable("refresh");
+        }
+    });
+</script>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>搜索结果</title>
+    <span th:include="km/commons/templates :: common-css-js"></span>
+    <span th:include="km/commons/templates :: init-menu"></span>
+    <style>
+        .bs-callout-active:hover {
+            border-left-color: #1b809e;
+        }
+
+        .bs-callout-active > .content {
+            color: #777777;
+            font-size: 20px;
+        }
+
+        #record-info a {
+            color: inherit;
+        }
+
+        #record-info a:hover {
+            text-decoration: none;
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="km/commons/templates :: header"></div>
+<div class="container">
+    <!-- 搜索列表头-->
+    <div class="page-header">
+                <h2>Knowledge Manual
+                    <small>name & tag</small>
+                </h2>
+    </div>
+    <!-- 记录列表 -->
+    <div id="record-info"></div>
+    <!-- 分页栏 -->
+    <div class="row">
+        <div class="col-md-7" id="page-footer">
+        </div>
+        <div class="col-md-5">
+            <div class="form-inline pull-right" style="margin-top: 12px;">
+                <div class="form-group">
+                    <label>单页显示条数:</label>
+                    <select class="form-control" name="size" id="page-size">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script th:inline="text">
+
+    var queryText = 'q';
+    var pageIndex = 0;
+    var size = 10;
+    /**
+     *  更新分页列表
+     * @param item
+     * @returns {string}
+     */
+    function getItem(item) {
+        var url = "[[@{/view/knowledge/}]]" + item['id'] ;
+
+        var reg = new RegExp(queryText, "g");//g,表示全部替换。
+        var replaceText =  '<span class="text-danger">' + queryText + '</span>';
+
+        var array = $.trim(item['tags']).split(';');
+        var tagList = '';
+        for (var i = 0; i < array.length; i++) {
+            var tag = array[i];
+            if (tag.length > 0) {
+                tag = tag.replace(reg,replaceText);
+                tagList += "#" + tag + "&nbsp;&nbsp;";
+            }
+        }
+        var name =  item['name'].replace(reg,replaceText);
+        var str = '<a target="_blank" href="' + url + '"><div class="bs-callout bs-callout-active record-item">' +
+            '<div class="h3">' + name+ '</div>' +
+            '<span>' + item['createTime'] + '</span>' +
+            '<div class="flag"><span class="h5">' + tagList + '</span></div>' +
+            '</div></a>';
+        return str;
+    }
+
+    /**
+     *  更新分页栏
+     * @param page
+     */
+    function updatePagination(page) {
+        var totalPages = page['totalPages'] - 0;
+        var number = page['number'] - 0;
+        var size = page['size'];
+
+        $("select[name=size]").find("option[value='" + size + "']").prop('selected', true);
+
+        var previous = number > 0 ? number : number + 1;
+        var next = number >= totalPages ? totalPages : (number + 2);
+
+        if (totalPages > 1) {
+
+            var liList = '';
+            // 长度少于10 ,全部显示
+            if (totalPages <= 10) {
+                for (var i = 0; i < totalPages; i++) {
+                    var index = i + 1;
+                    var flag = '';
+                    if (number == i) {
+                        flag = 'active'
+                    }
+                    liList += '<li class="btn-search ' + flag + '" data-value="' + index + '"><a >' + index + '</a></li>';
+                }
+            } else {
+                var flag = '';
+
+                // 长度大于5，下标识小于5
+                if (number < 5) {
+                    for (var i = 0; i < 5; i++) {
+                        var index = i + 1;
+                        flag = '';
+                        if (number == i) {
+                            flag = 'active'
+                        }
+                        liList += '<li class="btn-search ' + flag + '" data-value="' + index + '"><a>' + index + '</a></li>';
+                    }
+                    flag = '';
+                    liList += '<li><a style="background: #ffffff;color: #0f0f0f;border-color: #ddd">...</a></li>';
+
+                    // 长度大于10，总长度-下表 < 5
+                } else if (totalPages - (number + 1) < 5) {
+                    liList += '<li class="btn-search " data-value="1"><a>1</a></li>';
+                    liList += '<li><a style="background: #ffffff;color: #0f0f0f;border-color: #ddd">...</a></li>';
+
+                    var i = 0;
+
+                    for (var i = 4; i > 0; i--) {
+                        flag = '';
+                        var index = totalPages - 1 - i;
+                        if (number == index) {
+                            flag = 'active'
+                        }
+                        liList += '<li class="btn-search ' + flag + '" data-value="' + index + '"><a>' + index + '</a></li>';
+                    }
+
+                    flag = '';
+                    // 中间数字
+                } else {
+                    liList += '<li class="btn-search " data-value="1"><a>1</a></li>';
+                    liList += '<li class="active" ><a style="background: #ffffff;color: #0f0f0f;border-color: #ddd">...</a></li>';
+
+                    liList += '<li class="btn-search " data-value="' + number + '"><a>' + (number) + '</a></li>';
+                    liList += '<li class="btn-search  active" data-value="' + (number + 1) + '"><a>' + (number + 1) + '</a></li>';
+                    liList += '<li class="btn-search " data-value="' + (number + 2) + '"><a>' + (number + 2) + '</a></li>';
+
+                    liList += '<li class="active"><a style="background: #ffffff;color: #0f0f0f;border-color: #ddd">...</a></li>';
+                }
+                if (number == totalPages - 1) {
+                    flag = 'active'
+                }
+                liList += '<li class="btn-search ' + flag + '" data-value="' + totalPages + '"><a>' + totalPages + '</a></li>';
+            }
+
+            var str = '<nav aria-label="Page navigation">' +
+                '<ul class="pagination">' +
+                ' <li>' +
+                ' <a class="btn-search"  data-value="' + previous + '">' +
+                '<span aria-hidden="true">&laquo; 上一页</span>' +
+                '</a>' +
+                '</li>' +
+                liList +
+                '<li>' +
+                '<a class="btn-search" data-value="' + next + '">' +
+                '<span aria-hidden="true">下一页 &raquo;</span>' +
+                '</a>' +
+                '</li>' +
+                '</ul>' +
+                '</nav>';
+            return str;
+        }
+        return "";
+    }
+
+    /**
+     * 分页栏事件
+     **/
+    $("#page-footer").on("click", ".btn-search", function () {
+        pageIndex = $(this).attr("data-value");
+        size = $("#page-size").val();
+        queryText = $.trim($("#header-search-text").val());
+        updateData();
+    })
+
+    /**
+     *  更新样式
+     * @param page
+     */
+    function updateView(page) {
+        var content = page['content'];
+        var resultStr = '';
+        for (var i = 0; i < content.length; i++) {
+            var item = content[i];
+            resultStr += getItem(item);
+        }
+
+        if(content.length == 0){
+            resultStr = '<br><div class="h3">查不到相关记录</div>';
+        }
+
+        // 更新列表
+        $("#record-info").empty().append(resultStr);
+
+        //更新目录
+        var pagination = updatePagination(page);
+        $("#page-footer").empty().append(pagination);
+    }
+    /**
+     * 更新列表数据
+     **/
+    function updateData() {
+        $.get("[[@{/knowledge/page}]]?offset=" + pageIndex + "&size=" + size + "&queryText=" + queryText, function (data) {
+            updateView(data);
+        })
+    }
+
+    /**
+     * 单页显示个数监听
+     **/
+    $("#page-size").on("change",function () {
+        size = $(this).val();
+        updateData();
+    })
+
+    /**
+     *  设置查询页面动态查询结果集
+     */
+    $("#header-search-text").on("keyup",function () {
+        queryText = $.trim($(this).val());
+        updateData();
+    })
+
+    $.get("[[@{/knowledge/page?queryText=}]][[${queryText}]]&size=10", function (data) {
+        queryText = $.trim($("#header-search-text").val());
+        updateView(data);
+    })
+</script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Link 列表</title>
+    <span th:include="km/commons/templates :: common-css-js"></span>
+    <span th:include="km/commons/templates :: init-menu"></span>
+    <span th:include="km/commons/templates :: bootstrap-table"></span>
+    <style>
+        .list-group-item {
+            border-color: #ffffff;
+        }
+        .tag-selected{
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="km/commons/templates :: header">...</div>
+<div class="container">
+    <div class="page-header">
+        <div class="h3">Link</div>
+    </div>
+    <div class="row">
+        <div class="col-lg-3">
+            <div class="h4">Tags:</div>
+            <div class="list-group" id="tags-list" style="margin-top: 30px;"></div>
+        </div>
+        <div class="col-lg-9">
+            <table id="records-info"></table>
+        </div>
+    </div>
+</div>
+<!-- 表格按钮 -->
+<div id="toolbar">
+    <div class="btn-group">
+        <button class="btn btn-default" id="add-btn"><i
+                class="glyphicon glyphicon-plus"></i> 新增
+        </button>
+    </div>
+</div>
+<!-- 新增框 -->
+
+<div class="modal fade" id="add-panel" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">新增 Link</h4>
+            </div>
+            <div class="modal-body">
+                <form id="entity-form">
+                    <div class="form-group">
+                        <label class="control-label">ID:</label>
+                        <input type="text" class="form-control" name="id" id="entity-id" readonly>
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">链接名:</label>
+                        <input type="text" class="form-control" name="name" id="entity-name" autocomplete="off">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">链接:</label>
+                        <input type="text" class="form-control" name="href" id="entity-href"
+                               placeholder="https://www.baidu.com/" autocomplete="off">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">标签:</label>
+                        <input type="text" class="form-control" name="tags" id="entity-tags" readonly>
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">描述:</label>
+                        <input type="text" class="form-control" name="description" id="entity-description"
+                               autocomplete="off">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">创建时间:</label>
+                        <input type="text" class="form-control" id="entity-createTime" readonly>
+                        <span class="help-block"></span>
+                    </div>
+                    <!--<div class="form-group">-->
+                        <!--<label class="control-label">关联附件:</label>-->
+                        <!--<input type="text" class="form-control" id="entity-attachment" readonly>-->
+                        <!--<span class="help-block"></span>-->
+                    <!--</div>-->
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-info" id="btn-addition">保存</button>
+                <button type="button" class="btn btn-warning" id="btn-modify">更新</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<!-- 弹出Tag选择框 -->
+<div class="modal fade" id="tags-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">选择标签</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="panel panel-default">
+                            <div class="panel-heading" style="background-color: #ffffff">
+                                <h3 class="panel-title">标签列表</h3>
+                            </div>
+                            <div class="panel-body" id="tag-list">
+                                1
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <!-- style="background-color: #F5F5F5" -->
+                        <div class="panel panel-default">
+                            <div class="panel-heading" style="background-color: #ffffff">
+                                <h3 class="panel-title">已选标签</h3>
+                            </div>
+                            <div class="panel-body">
+                                <ol id="tags-selected-panel">
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">确定</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+</body>
+<script th:inline="text">
+
+    /**
+     * 知识点列表路程
+     **/
+    var entityURL = "[[@{/link/list}]]";
+
+    /**
+     *  刷新表格
+     * @param data
+     */
+    function tableDisplay(data) {
+        $("#records-info").bootstrapTable("removeAll").bootstrapTable("append", data);
+    }
+
+    $('#records-info').bootstrapTable({
+        url: entityURL,//请求数据url
+        showRefresh: true,
+        toolbar: "#toolbar",
+        smartDisplay: true,
+        showToggle: true,
+        // showExport:true,
+        paginationPreText: '上一页',
+        paginationNextText: '下一页',
+        pagination: true,//分页
+//        sidePagination: 'server',//服务器端分页
+        paginationVAlign: 'bottom',
+        pageNumber: 1,
+        pageSize: 30,
+        pageList: [10, 20, 30, 50, 'all'],//分页步进值
+        search: true, //显示搜索框
+        columns: [
+            {
+                field: 'id',
+                title: '编号',
+                sortable: true,
+            },
+            {
+                field: 'name',
+                title: '标题',
+                formatter: function (value, row, index) { // 单元格格式化函数
+
+                    return "<p>" + value + "</p>";
+                }
+            },
+            {
+                field: 'tags',
+                title: '标签',
+                sortable: true,
+            },
+            {
+                field: 'description',
+                title: '描述',
+
+            },
+            {
+                field: 'createTime',
+                title: '创建时间',
+                sortable: true,
+            },
+            {
+                field: 'status',
+                title: '状态',
+                sortable: true,
+                formatter: function (value, row, index) { // 单元格格式化函数
+
+                    if (value == 1) {
+                        return "<span class='text-success'>可用</span>"
+                    }
+                    if (value == 0) {
+                        return "<span class='text-danger'>禁用</span>"
+                    }
+                    return value;
+                }
+            },
+            {
+                title: '详情',
+                width: '20%',
+                formatter: function (value, row, index) { // 单元格格式化函数
+                    var id = row['id'];
+                    var str = "<a class='btn btn-default' href='" + row['href'] + "' target='_blank'><i class='glyphicon glyphicon-link'></i></a>";
+                    str += "&nbsp;<a class='btn btn-default btn-edit' data-id='" + id + "' ><i class='glyphicon glyphicon-pencil'></i></a>";
+                    if (row['status'] == 1) {
+                        str += "&nbsp;<a class='btn btn-default btn-update-state' data-id='" + id + "' data-state='0'><i class='glyphicon glyphicon-ok text-success'></i></a>";
+                    } else {
+                        str += "&nbsp;<a class='btn btn-default btn-update-state' data-id='" + id + "' data-state='1'><i class='glyphicon glyphicon-remove text-danger'></i></a>";
+                    }
+                    return str;
+
+                }
+            },
+        ]
+    })
+
+    /**
+     *  标签列表 =============================================
+     */
+
+    $.get("[[@{/link/tags/info}]]", function (data) {
+        var str = "";
+        var count = 0;
+        for (var i = 0; i < data.length; i++) {
+            var node = data[i];
+            str += '<a class="list-group-item tag-btn" data-tag="' + node[0] + '"><i class="glyphicon glyphicon-tags"></i>&nbsp;&nbsp;&nbsp;';
+            if (node[1] != 0) {
+                str += '<span class="badge">' + node[1] + '</span>';
+                count += node[1] - 0;
+            }
+            str += node[0] + '</a>';
+        }
+        $("#tags-list").empty();
+        $("#tags-list").append('<a class="list-group-item tag-btn" data-tag=""><i class="glyphicon glyphicon-tags"></i>&nbsp;&nbsp;&nbsp;所有</a>').append(str);
+    })
+
+    $("#tags-list").on("click", ".tag-btn", function (data) {
+        $(".tag-btn").removeClass("active");
+        $(this).addClass("active");
+        var tag = $(this).attr("data-tag");
+
+        $.get(entityURL + "?tag=" + tag, function (data) {
+            console.log(data);
+            tableDisplay(data);
+        })
+    })
+
+    /**
+     * tags 设置 ==================================
+     **/
+
+    /**
+     * 关联Key的Map
+     **/
+        // 选择Map 容器
+    var keyTagsMap = {};
+    // 初始化
+    var initFlag = false;
+    $("#entity-tags").click(function () {
+
+        // 初始化空选中集合
+        keyTagsMap = {};
+        $("#tags-selected-panel").empty();
+
+        var array = $(this).val().split(';')
+        for (var i = 0; i < array.length; i++) {
+            var key = array[i];
+            if (key != "") {
+                keyTagsMap[key] = key;
+                $("#tags-selected-panel").append("<li>" + key + "</li>");
+            }
+        }
+
+        $.get("[[@{/knowledge/tags}]]", function (data) {
+            $("#tag-list").empty();
+            for (var i = 0; i < data.length; i++) {
+                var node = data[i];
+                var str = "<a class='btn btn-sm btn-default tag-selected";
+
+                var value = node['value'];
+                if (keyTagsMap[value] == undefined) {
+                    str += "' data-selected='0' data-key='" + value + "' data-value='" + value + "'>" + value + "</a>";
+                } else {
+                    str += " active' data-selected='1' data-key='" + value + "' data-value='" + value + "'>" + value + "</a>";
+                }
+
+                $("#tag-list").append(str)
+            }
+        })
+
+        $('#tags-modal').modal('show');
+    })
+
+    $("#tag-list").on("click", ".tag-selected", function () {
+        var id = $(this).attr("data-key");
+        var value = $(this).attr("data-value");
+        var dataSelected = $(this).attr("data-selected");
+
+        // 配置选择状态
+        if (dataSelected == '0') {
+            keyTagsMap[id] = value;
+            $(this).attr("data-selected", 1);
+            $(this).addClass("active");
+        } else {
+            keyTagsMap[id] = undefined;
+            $(this).attr("data-selected", 0);
+            $(this).removeClass("active");
+        }
+
+        // 注入选项框
+        $("#tags-selected-panel").empty();
+        var strValue = "";
+        for (var key in keyTagsMap) {
+            var objValue = keyTagsMap[key];
+            if (objValue != undefined && objValue.length > 0) {
+                $("#tags-selected-panel").append("<li>" + objValue + "</li>");
+                strValue += objValue + ";";
+            }
+        }
+        // 设置input
+        $("#entity-tags").val(strValue);
+    })
+    /**
+     *  表单按钮 ======================================
+     */
+    /**
+     *  新增实体
+     */
+    $("#add-btn").click(function () {
+        $("#add-panel").modal("show");
+
+        // 初始化隐藏
+        $($("#entity-id").parent(".form-group")[0]).hide();
+        $($("#entity-createTime").parent(".form-group")[0]).hide();
+        $("#btn-modify").hide();
+        $("#btn-addition").show();
+
+        // 初始化空值
+        $("#entity-name").val("");
+        $("#entity-href").val("");
+        $("#entity-description").val("");
+        $("#entity-tags").val("");
+        // 配置初始化框为空
+        initFlag = false;
+    })
+
+    /**
+     *  持久化实体
+     */
+    $("#btn-addition").click(function () {
+        $.post("[[@{/link/addition}]]", $("#entity-form").serializeArray(), function (data) {
+            if (data['status'] = 'success') {
+                console.log("更新成功！");
+                $('#records-info').bootstrapTable("refresh");
+                $("#add-panel").modal("hide");
+            }
+        })
+    })
+    /**
+     * 更新实体状态
+     **/
+    $("#records-info").on("click", ".btn-update-state", function () {
+        var id = $(this).attr("data-id");
+        var status = $(this).attr("data-state");
+        $.post("[[@{/link/}]]" + id + "/" + status, {status: status}, function (data) {
+            console.log(data);
+            $('#records-info').bootstrapTable("refresh");
+        })
+    })
+
+    /**
+     * 编辑按钮
+     */
+    $("#records-info").on("click", ".btn-edit", function () {
+        var id = $(this).attr("data-id");
+        $.get("[[@{/link/}]]" + id + "/info", function (data) {
+            console.log(data);
+            if (data['id'] != undefined) {
+                $("#entity-id").val(data['id']).show();
+                $("#entity-createTime").val(data['createTime']).show();
+
+                $("#entity-name").val(data['name']);
+                $("#entity-href").val(data['href']);
+                $("#entity-tags").val(data['tags']);
+                $("#entity-description").val(data['description']);
+
+                $("#btn-modify").show();
+                $("#btn-addition").hide();
+                $("#add-panel").modal("show");
+            }
+        })
+    })
+
+    /**
+     *  提交更新表单
+     */
+    $("#btn-modify").click(function () {
+        $.post("[[@{/link/update}]]", $("#entity-form").serializeArray(), function (data) {
+            if (data['status'] = 'success') {
+                console.log("更新成功！");
+                $('#records-info').bootstrapTable("refresh");
+                $("#add-panel").modal("hide");
+            }
+        })
+    })
+</script>
+</html>

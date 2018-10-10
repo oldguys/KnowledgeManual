@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>数据字典配置</title>
+    <span th:include="km/commons/templates :: common-css-js"></span>
+    <span th:include="km/commons/templates :: init-menu"></span>
+    <span th:include="km/commons/templates :: bootstrap-table"></span>
+</head>
+<body>
+<div th:replace="km/commons/templates :: header"></div>
+<div class="container">
+    <div class="page-header">
+        <h3>数据字典<a class="btn btn-default pull-right" id="add-btn">新增</a></h3>
+    </div>
+    <table id="records-info"></table>
+</div>
+
+</body>
+<!-- 弹框 -->
+<div class="modal fade" id="edit-panel" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">编辑字典</h4>
+            </div>
+            <div class="modal-body">
+                <form id="dictionary-form">
+                    <div class="form-group">
+                        <label class="control-label">ID:</label>
+                        <input type="text" class="form-control" name="id" id="dictionary-id">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">类型:</label>
+                        <select name="type" id="dictionary-type" class="form-control"></select>
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">标题:</label>
+                        <input type="text" class="form-control" name="name" id="dictionary-name" autocomplete="off">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">映射类型:</label>
+                        <input type="text" class="form-control" name="valueType" id="dictionary-valueType"
+                               autocomplete="off">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">变量key:</label>
+                        <input type="text" class="form-control" name="dictionaryKey" id="dictionary-dictionaryKey"
+                               autocomplete="off">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">变量值:</label>
+                        <input type="text" class="form-control" name="value" id="dictionary-value" autocomplete="off">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">创建时间:</label>
+                        <input type="text" class="form-control" name="createTime" id="dictionary-createTime"
+                               autocomplete="off">
+                        <span class="help-block"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">状态:</label>
+                        <select name="status" id="dictionary-status" class="form-control">
+                            <option value="1">正常</option>
+                            <option value="0">禁用</option>
+                        </select>
+                        <span class="help-block"></span>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-default" id="btn-update">更新</button>
+                <button type="button" class="btn btn-default" id="btn-addition">新增</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+
+<script th:inline="text">
+
+    $('#records-info').bootstrapTable({
+        url: "[[@{/dictionary/list}]]",//请求数据url
+        showRefresh: true,
+        smartDisplay: true,
+        showToggle: true,
+        // showExport:true,
+        paginationPreText: '上一页',
+        paginationNextText: '下一页',
+        pagination: true,//分页
+//        sidePagination: 'server',//服务器端分页
+        paginationVAlign: 'bottom',
+        pageNumber: 1,
+        pageSize: 30,
+        pageList: [10, 20, 30, 50, 'all'],//分页步进值
+        search: true, //显示搜索框
+//        striped: true,
+        columns: [
+            {
+                field: 'id',
+                title: '编号',
+            },
+            {
+                field: 'type',
+                title: '类型',
+                sortable: true
+            }, {
+                field: 'name',
+                title: '标题',
+            },
+            {
+                field: 'valueType',
+                title: '映射值类型',
+            },
+            {
+                field: 'dictionaryKey',
+                title: '变量key',
+            },
+            {
+                field: 'value',
+                title: '变量值',
+            },
+            {
+                field: 'createTime',
+                title: '创建时间',
+            },
+            {
+                field: 'status',
+                title: '状态',
+                formatter: function (value, row, index) { // 单元格格式化函数
+
+                    if (value == 1) {
+                        return "<span class='text-success'>可用</span>"
+                    }
+                    if (value == 0) {
+                        return "<span class='text-danger'>禁用</span>"
+                    }
+                    return value;
+                }
+            },
+            {
+                title: '编辑',
+                formatter: function (value, row, index) { // 单元格格式化函数
+
+                    var id = row['id'];
+                    var str = '<div class="btn-group"> ' +
+                        ' <button class="btn btn-default btn-edit" title="编辑"' +
+                        'data-toggle="tooltip" data-placement="left" data-value="' + id + '" >  ' +
+                        '  <i class="glyphicon glyphicon-pencil"></i>  ' +
+                        ' </button>  ' +
+                        ' </div>  ';
+
+                    return str;
+                }
+            },
+        ]
+    })
+
+    /**
+     *  初始化类别
+     */
+    $.get("[[@{/dictionary/knowledge/types}]]", function (data) {
+        var dictionaryType = $("#dictionary-type");
+        // 获取key - value
+        for (var key in data) {
+//            console.log("key:" + key + "\t value:" + data[key]);
+            dictionaryType.append('<option value="' + data[key] + '">' + key + '</option>')
+        }
+    })
+
+    $("#records-info").on("click", ".btn-edit", function () {
+        var id = $(this).attr("data-value");
+        console.log("id:" + id);
+
+        $.get("[[@{/dictionary/}]]" + id + "/info", function (data) {
+            console.log(data);
+            $("#dictionary-id").val(data['id']).prop("readOnly",true);;
+            $("#dictionary-type").val(data['type']);
+            $("#dictionary-name").val(data['name']);
+            $("#dictionary-valueType").val(data['valueType']);
+            $("#dictionary-dictionaryKey").val(data['dictionaryKey']);
+            $("#dictionary-value").val(data['value']);
+            $("#dictionary-createTime").val(data['createTime']).prop("readOnly",true);
+            $("#dictionary-status").val(data['status']);
+        })
+        // 更新界面
+        $($("#dictionary-createTime").parent(".form-group")[0]).show();
+        $($("#dictionary-id").parent(".form-group")[0]).show();
+        $($("#dictionary-status").parent(".form-group")[0]).show();
+        $("#btn-addition").hide();
+        $("#btn-update").show();
+        // CSS3 选择器区别
+        $("#edit-panel .modal-title").text("编辑字典");
+
+        $("#edit-panel").modal("show");
+    })
+
+    $("#add-btn").click(function () {
+        $("#dictionary-id").val("").prop("readOnly",false);;
+        $("#dictionary-type").val("");
+        $("#dictionary-name").val("");
+        $("#dictionary-valueType").val("");
+        $("#dictionary-dictionaryKey").val("");
+        $("#dictionary-value").val("");
+        $("#dictionary-status").val("");
+
+        // 新增界面
+        $($("#dictionary-createTime").parent(".form-group")[0]).hide();
+        $($("#dictionary-id").parent(".form-group")[0]).hide();
+        $($("#dictionary-status").parent(".form-group")[0]).hide();
+        $("#btn-addition").show();
+        $("#btn-update").hide();
+
+        console.log($("#edit-panel  .modal-title"));
+        $("#edit-panel .modal-title").text("新增字典");
+
+        $("#edit-panel").modal("show");
+    })
+
+    /**
+     *  新增字典
+     */
+    $("#btn-addition").click(function () {
+        $.post("[[@{/dictionary/addition}]]",$("#dictionary-form").serializeArray(),function (data) {
+            console.log(data)
+            if(data['status'] == 'success'){
+                $('#records-info').bootstrapTable("refresh");
+                $("#edit-panel").modal("hide");
+            }
+        })
+    })
+    /**
+     *  更新字典
+     */
+    $("#btn-update").click(function () {
+        $.post("[[@{/dictionary/update}]]",$("#dictionary-form").serializeArray(),function (data) {
+            console.log(data)
+            if(data['status'] == 'success'){
+                $('#records-info').bootstrapTable("refresh");
+                $("#edit-panel").modal("hide");
+            }
+        })
+    })
+</script>
+
+</html>

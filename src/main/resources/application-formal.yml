@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    username: root
+    password: root
+    url: jdbc:mysql://127.0.0.1:3306/kmanual_formal?useUnicode=true&characterEncoding=utf8&useSSL=false
+    driver-class-name: com.mysql.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+server:
+  port: 8088
+km:
+  configs:
+    static-values-properties: "configs/static-values.properties"
+    upload-files-path: "E://KnowledgeManual//formal//KManual"
+    druid-console-username: "admin"
+    druid-console-password: "123456"
+    druid-console-springs: "com.hrh.kmanual.modules.controllers.*;com.hrh.kmanual.view.*"
+    druid-console-slowSql: 200
+
+##################################################
+# JodConverter Configuration
+# port : 8100, 8101, 8102, 8103, 8104, 8105, 8106, 8107, 8108, 8109
+##################################################
+jodconverter:
+  enabled: true
+#  office-home: "E://KnowledgeManual//KManual//openoffice4"
+  max-tasks-per-process: 10
+  port-numbers: 8100
